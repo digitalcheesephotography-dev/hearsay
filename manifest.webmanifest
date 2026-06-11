@@ -1,6 +1,6 @@
 {
-  "name": "Owl Notes",
-  "short_name": "Owl Notes",
+  "name": "HearSay",
+  "short_name": "HearSay",
   "description": "Standalone note taker: record, transcribe, summarize — everything stays on your device.",
   "start_url": ".",
   "scope": ".",

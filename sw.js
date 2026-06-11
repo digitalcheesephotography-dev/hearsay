@@ -1,5 +1,5 @@
-// Owl Notes service worker — caches the app shell so it opens offline.
-const CACHE = "owlnotes-v1";
+// HearSay service worker — caches the app shell so it opens offline.
+const CACHE = "hearsay-v1";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", e => {
