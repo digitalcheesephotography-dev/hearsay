@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10131c">
+<title>Owl Notes — Standalone Note Taker</title>
+<style>
+  :root{
+    --bg:#10131c; --panel:#171b28; --panel2:#1e2333; --line:#2a3148;
+    --text:#e7eaf3; --dim:#8b93ad; --accent:#f5b942; --accent2:#7aa2ff;
+    --danger:#ff6b6b; --ok:#5fd38a; --radius:10px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  [hidden]{display:none !important;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg); color:var(--text);
+    font:15px/1.5 "Segoe UI", system-ui, sans-serif;
+    overflow:hidden;
+  }
+  button{font:inherit; cursor:pointer; border:none; border-radius:8px;}
+  input,textarea,select{font:inherit; color:var(--text); background:var(--panel2); border:1px solid var(--line); border-radius:8px;}
+  input:focus,textarea:focus,select:focus{outline:1px solid var(--accent2);}
+
+  #app{display:flex; height:100vh;}
+
+  /* ---------- sidebar ---------- */
+  #sidebar{width:280px; min-width:220px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column;}
+  .side-head{display:flex; align-items:center; justify-content:space-between; padding:14px 14px 10px;}
+  .logo{font-size:18px; font-weight:600;}
+  .logo .owl{font-size:22px; margin-right:4px;}
+  #btnNew{background:var(--accent); color:#1a1304; font-weight:700; width:32px; height:32px; font-size:20px; line-height:1;}
+  #btnNew:hover{filter:brightness(1.1);}
+  #search{margin:0 14px 10px; padding:8px 10px; width:calc(100% - 28px);}
+  #noteList{list-style:none; overflow-y:auto; flex:1; padding:0 8px;}
+  #noteList li{
+    padding:10px 10px; border-radius:var(--radius); cursor:pointer; margin-bottom:4px;
+    border:1px solid transparent;
+  }
+  #noteList li:hover{background:var(--panel2);}
+  #noteList li.active{background:var(--panel2); border-color:var(--line);}
+  #noteList .nt{font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #noteList .nm{font-size:12px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .side-foot{padding:10px 14px; font-size:12px; color:var(--dim); border-top:1px solid var(--line);}
+
+  /* ---------- main ---------- */
+  #main{flex:1; display:flex; flex-direction:column; min-width:0;}
+
+  .empty{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:30px;}
+  .empty .big{font-size:64px;}
+  .empty h1{font-size:24px;}
+  .empty p{color:var(--dim); max-width:480px;}
+  .empty .start{background:var(--accent); color:#1a1304; font-weight:700; padding:12px 22px; font-size:16px;}
+
+  #editor{flex:1; display:flex; flex-direction:column; min-height:0;}
+  .topbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px 18px 10px; border-bottom:1px solid var(--line);}
+  #title{flex:1; min-width:160px; font-size:18px; font-weight:600; padding:8px 10px; background:transparent; border-color:transparent;}
+  #title:hover,#title:focus{background:var(--panel2); border-color:var(--line);}
+  #lang{padding:8px; max-width:150px;}
+  #btnRec{background:var(--accent); color:#1a1304; font-weight:700; padding:9px 16px;}
+  #btnRec.recording{background:var(--danger); color:#fff;}
+  #timer{font-variant-numeric:tabular-nums; color:var(--dim); min-width:46px;}
+  .iconbtn{background:var(--panel2); color:var(--text); border:1px solid var(--line); padding:9px 12px;}
+  .iconbtn:hover{border-color:var(--accent2);}
+  #btnDelete:hover{border-color:var(--danger); color:var(--danger);}
+
+  #liveBar{margin:10px 18px 0; padding:9px 12px; border-radius:var(--radius); background:#2a2415; border:1px solid #57451c; font-size:14px;}
+  #liveBar .dot{display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--danger); margin-right:8px;}
+  #interim{color:var(--dim); font-style:italic;}
+  #notice{margin:10px 18px 0; padding:9px 12px; border-radius:var(--radius); background:#26203a; border:1px solid #463a6b; font-size:13px; color:#c9c2e8;}
+
+  #player{margin:10px 18px 0; width:calc(100% - 36px); height:36px;}
+
+  .tabs{display:flex; gap:4px; padding:12px 18px 0;}
+  .tabs button{background:transparent; color:var(--dim); padding:8px 14px; border-radius:8px 8px 0 0; border-bottom:2px solid transparent;}
+  .tabs button:hover{color:var(--text);}
+  .tabs button.active{color:var(--accent); border-bottom-color:var(--accent);}
+
+  .pane{flex:1; min-height:0; display:flex; flex-direction:column; padding:12px 18px 18px;}
+  #transcript{flex:1; resize:none; padding:14px; line-height:1.7; font-size:15px;}
+
+  .toolrow{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+  .gen{background:var(--accent2); color:#0b1020; font-weight:600; padding:9px 16px;}
+  .gen:hover{filter:brightness(1.1);}
+  .hint{color:var(--dim); font-size:13px; align-self:center;}
+
+  .scrollbox{overflow-y:auto; flex:1;}
+  #summaryList{list-style:none;}
+  #summaryList li{padding:10px 14px; margin-bottom:8px; background:var(--panel2); border:1px solid var(--line); border-radius:var(--radius);}
+  #summaryList li::before{content:"• "; color:var(--accent);}
+
+  #actionList{list-style:none;}
+  #actionList li{display:flex; gap:10px; align-items:flex-start; padding:10px 14px; margin-bottom:8px; background:var(--panel2); border:1px solid var(--line); border-radius:var(--radius);}
+  #actionList input[type=checkbox]{margin-top:4px; accent-color:var(--ok); width:16px; height:16px;}
+  #actionList li.done .atext{text-decoration:line-through; color:var(--dim);}
+  #actionList .atext{flex:1;}
+  #actionList .ax{background:none; color:var(--dim); font-size:16px; padding:0 4px;}
+  #actionList .ax:hover{color:var(--danger);}
+
+  #cardBox{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;}
+  #card{
+    width:min(560px, 100%); min-height:200px; padding:28px; text-align:center;
+    background:var(--panel2); border:1px solid var(--line); border-radius:16px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    cursor:pointer; font-size:18px;
+  }
+  #card .side{font-size:12px; letter-spacing:2px; color:var(--dim); text-transform:uppercase;}
+  #card.back{border-color:var(--accent);}
+  #card.back .answer{color:var(--accent); font-weight:700;}
+  .cardnav{display:flex; gap:10px; align-items:center;}
+  .cardnav button{background:var(--panel2); border:1px solid var(--line); color:var(--text); padding:8px 16px;}
+  #cardCount{color:var(--dim); min-width:60px; text-align:center;}
+  .placeholder{color:var(--dim); text-align:center; margin-top:30px;}
+
+  #btnBack{display:none;}
+
+  /* unfolded Z Fold / small tablet: keep two panes, slimmer sidebar */
+  @media (max-width:760px){
+    #sidebar{width:200px; min-width:180px;}
+    .topbar{padding:10px; gap:8px;}
+    .pane{padding:10px;}
+  }
+
+  /* folded cover screen / phone: master-detail, one pane at a time */
+  @media (max-width:600px){
+    #btnBack{display:block;}
+    #sidebar{width:100%; min-width:0; border-right:none;}
+    #main{display:none;}
+    #app.note-open #sidebar{display:none;}
+    #app.note-open #main{display:flex;}
+    #title{min-width:100px;}
+    .tabs{overflow-x:auto; padding:8px 8px 0; scrollbar-width:none;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tabs button{padding:8px 9px; white-space:nowrap; flex:0 0 auto;}
+    #noteList li{padding:14px 12px;}
+    button{min-height:38px;}
+    #card{min-height:160px; padding:18px; font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <aside id="sidebar">
+    <header class="side-head">
+      <div class="logo"><span class="owl">🦉</span>Owl Notes</div>
+      <button id="btnNew" title="New note">+</button>
+    </header>
+    <input id="search" type="search" placeholder="Search notes…">
+    <ul id="noteList"></ul>
+    <footer class="side-foot">🔒 Everything stays on this PC</footer>
+  </aside>
+
+  <main id="main">
+
+    <div id="empty" class="empty">
+      <div class="big">🦉</div>
+      <h1>Owl Notes</h1>
+      <p>Your standalone note taker. Record a meeting or lecture, watch the live transcript appear,
+         then generate a <b>summary</b>, <b>action items</b>, and <b>flashcards</b> — all without
+         an account, a subscription, or sending your notes anywhere.</p>
+      <button class="start" id="btnStart">＋ Create your first note</button>
+      <p style="font-size:13px">Tip: live transcription works best in Microsoft Edge or Google Chrome.</p>
+    </div>
+
+    <div id="editor" hidden>
+      <div class="topbar">
+        <button id="btnBack" class="iconbtn" title="All notes">←</button>
+        <input id="title" placeholder="Untitled note" spellcheck="false">
+        <select id="lang" title="Transcription language">
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="en-AU">English (AU)</option>
+          <option value="es-ES">Español</option>
+          <option value="fr-FR">Français</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="it-IT">Italiano</option>
+          <option value="pt-BR">Português</option>
+          <option value="hi-IN">हिन्दी</option>
+          <option value="zh-CN">中文</option>
+          <option value="ja-JP">日本語</option>
+          <option value="ar-SA">العربية</option>
+        </select>
+        <button id="btnRec">🎙 Record</button>
+        <span id="timer"></span>
+        <button id="btnExport" class="iconbtn" title="Download note as Markdown">⬇ Export</button>
+        <button id="btnAudio" class="iconbtn" title="Download recording" hidden>🔊 Audio</button>
+        <button id="btnDelete" class="iconbtn" title="Delete note">🗑</button>
+      </div>
+
+      <div id="notice" hidden></div>
+      <div id="liveBar" hidden><span class="dot"></span>Listening… <span id="interim"></span></div>
+      <audio id="player" controls hidden></audio>
+
+      <nav class="tabs">
+        <button data-tab="transcript" class="active">📝 Transcript</button>
+        <button data-tab="summary">✨ Summary</button>
+        <button data-tab="actions">✅ Action Items</button>
+        <button data-tab="cards">🎓 Flashcards</button>
+      </nav>
+
+      <section class="pane" id="tab-transcript">
+        <textarea id="transcript" placeholder="Press 🎙 Record to start live transcription, or just type your notes here…" spellcheck="false"></textarea>
+      </section>
+
+      <section class="pane" id="tab-summary" hidden>
+        <div class="toolrow">
+          <button id="btnSummarize" class="gen">✨ Generate summary</button>
+          <span class="hint">Picks out the key sentences from your transcript.</span>
+        </div>
+        <div class="scrollbox"><ul id="summaryList"></ul><p class="placeholder" id="summaryEmpty">No summary yet.</p></div>
+      </section>
+
+      <section class="pane" id="tab-actions">
+        <div class="toolrow">
+          <button id="btnExtract" class="gen">✨ Find action items</button>
+          <button id="btnAddAction" class="iconbtn">＋ Add manually</button>
+          <span class="hint">Looks for tasks, commitments, and deadlines.</span>
+        </div>
+        <div class="scrollbox"><ul id="actionList"></ul><p class="placeholder" id="actionsEmpty">No action items yet.</p></div>
+      </section>
+
+      <section class="pane" id="tab-cards">
+        <div class="toolrow">
+          <button id="btnCards" class="gen">✨ Generate flashcards</button>
+          <span class="hint">Fill-in-the-blank cards from key sentences. Click a card to flip it.</span>
+        </div>
+        <div id="cardBox">
+          <p class="placeholder" id="cardsEmpty">No flashcards yet.</p>
+          <div id="card" hidden></div>
+          <div class="cardnav" id="cardNav" hidden>
+            <button id="cardPrev">← Prev</button>
+            <span id="cardCount"></span>
+            <button id="cardNext">Next →</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<script>
+"use strict";
+
+/* ============================== storage ============================== */
+
+let db = null;
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("owlnotes", 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore("notes", { keyPath: "id" });
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror  = () => reject(req.error);
+  });
+}
+function tx(mode){ return db.transaction("notes", mode).objectStore("notes"); }
+function dbPut(note){ return new Promise((res, rej) => { const r = tx("readwrite").put(note); r.onsuccess = res; r.onerror = () => rej(r.error); }); }
+function dbDelete(id){ return new Promise((res, rej) => { const r = tx("readwrite").delete(id); r.onsuccess = res; r.onerror = () => rej(r.error); }); }
+function dbAll(){ return new Promise((res, rej) => { const r = tx("readonly").getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+
+/* ============================== state ============================== */
+
+let notes = [];          // metadata cache of all notes (full objects)
+let current = null;      // currently open note object
+let saveTimer = null;
+
+const $ = id => document.getElementById(id);
+
+function newNote(){
+  return {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    title: "",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    transcript: "",
+    summary: [],
+    actions: [],   // {text, done}
+    cards: [],     // {front, back}
+    audio: null,   // Blob
+    lang: $("lang").value || "en-US"
+  };
+}
+
+function persist(){
+  if (!current) return;
+  current.updatedAt = Date.now();
+  dbPut(current).catch(err => console.error("save failed", err));
+  renderList();
+}
+function persistSoon(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 500);
+}
+
+/* ============================== sidebar ============================== */
+
+function noteLabel(n){
+  return n.title.trim() || firstWords(n.transcript, 5) || "Untitled note";
+}
+function firstWords(text, k){
+  const w = text.replace(/\[\d+:\d+\]/g, "").trim().split(/\s+/).filter(Boolean);
+  return w.slice(0, k).join(" ") + (w.length > k ? "…" : "");
+}
+function fmtDate(ts){
+  return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderList(){
+  const q = $("search").value.trim().toLowerCase();
+  const list = $("noteList");
+  list.innerHTML = "";
+  if (!notes.length) {
+    const li = document.createElement("li");
+    li.innerHTML = '<div class="nt">🦉 No notes yet</div><div class="nm">Tap here to create your first note</div>';
+    li.onclick = createNote;
+    list.append(li);
+    return;
+  }
+  notes
+    .filter(n => !q || (n.title + " " + n.transcript).toLowerCase().includes(q))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .forEach(n => {
+      const li = document.createElement("li");
+      if (current && n.id === current.id) li.className = "active";
+      const t = document.createElement("div"); t.className = "nt"; t.textContent = (n.audio ? "🎙 " : "") + noteLabel(n);
+      const m = document.createElement("div"); m.className = "nm"; m.textContent = fmtDate(n.updatedAt) + " · " + firstWords(n.transcript, 6);
+      li.append(t, m);
+      li.onclick = () => openNote(n.id);
+      list.append(li);
+    });
+}
+
+/* ============================== editor ============================== */
+
+function openNote(id){
+  if (recording && (!current || current.id !== id)) stopRecording();
+  current = notes.find(n => n.id === id) || null;
+  if (!current) return;
+  $("app").classList.add("note-open");
+  $("empty").hidden = true;
+  $("editor").hidden = false;
+  $("title").value = current.title;
+  $("transcript").value = current.transcript;
+  $("lang").value = current.lang || "en-US";
+  renderSummary(); renderActions(); renderCards(); renderAudio(); renderList();
+}
+
+function renderAudio(){
+  const p = $("player");
+  if (p.src) { URL.revokeObjectURL(p.src); p.removeAttribute("src"); }
+  const has = current && current.audio instanceof Blob && current.audio.size > 0;
+  p.hidden = !has;
+  $("btnAudio").hidden = !has;
+  if (has) p.src = URL.createObjectURL(current.audio);
+}
+
+async function createNote(){
+  const n = newNote();
+  notes.push(n);
+  await dbPut(n);
+  openNote(n.id);
+  $("title").focus();
+}
+
+async function deleteCurrent(){
+  if (!current) return;
+  if (!confirm(`Delete "${noteLabel(current)}"? This cannot be undone.`)) return;
+  if (recording) stopRecording();
+  await dbDelete(current.id);
+  notes = notes.filter(n => n.id !== current.id);
+  current = null;
+  $("app").classList.remove("note-open");
+  $("editor").hidden = true;
+  $("empty").hidden = false;
+  renderList();
+}
+
+/* ============================== tabs ============================== */
+
+document.querySelectorAll(".tabs button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("active", x === b));
+    ["transcript", "summary", "actions", "cards"].forEach(t => $("tab-" + t).hidden = (t !== b.dataset.tab));
+  };
+});
+// hide non-default panes initially (HTML hides summary only; do the rest here)
+$("tab-actions").hidden = true;
+$("tab-cards").hidden = true;
+
+/* ============================== recording ============================== */
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recording = false;
+let recognition = null;
+let mediaRecorder = null;
+let mediaStream = null;
+let chunks = [];
+let recStartedAt = 0;
+let timerInt = null;
+
+function elapsedStamp(){
+  const s = Math.floor((Date.now() - recStartedAt) / 1000);
+  return `[${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}]`;
+}
+
+function showNotice(msg){
+  const n = $("notice");
+  n.textContent = msg;
+  n.hidden = false;
+  setTimeout(() => { n.hidden = true; }, 8000);
+}
+
+async function startRecording(){
+  if (!current) return;
+  chunks = [];
+  recStartedAt = Date.now();
+
+  // 1) audio capture (independent from transcription — works even if SR doesn't)
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(mediaStream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      current.audio = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+      renderAudio();
+      persist();
+    };
+    mediaRecorder.start(1000);
+  } catch (err) {
+    mediaRecorder = null;
+    showNotice("Microphone not available (" + err.name + "). You can still type notes by hand.");
+  }
+
+  // 2) live transcription
+  if (SR) {
+    recognition = new SR();
+    recognition.lang = $("lang").value;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = e => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) appendTranscript(elapsedStamp() + " " + r[0].transcript.trim());
+        else interim += r[0].transcript;
+      }
+      $("interim").textContent = interim;
+    };
+    recognition.onerror = e => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        showNotice("Speech recognition was blocked (" + e.error + "). Audio is still being recorded if your mic works.");
+        recognition = null;
+      }
+    };
+    recognition.onend = () => {
+      // Chrome/Edge stop after pauses — restart while we're still recording
+      if (recording && recognition) { try { recognition.start(); } catch (_) {} }
+    };
+    try { recognition.start(); } catch (_) {}
+  } else {
+    showNotice("This browser has no live transcription — audio recording only. Open this file in Microsoft Edge or Google Chrome for live transcripts.");
+  }
+
+  if (!mediaRecorder && !SR) return; // nothing started
+
+  acquireWakeLock(); // keep the phone screen on so the mic isn't cut off
+  recording = true;
+  $("btnRec").textContent = "■ Stop";
+  $("btnRec").classList.add("recording");
+  $("liveBar").hidden = !SR;
+  $("timer").textContent = "0:00";
+  timerInt = setInterval(() => { $("timer").textContent = elapsedStamp().slice(1, -1); }, 1000);
+}
+
+let wakeLock = null;
+async function acquireWakeLock(){
+  try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch (_) {}
+}
+document.addEventListener("visibilitychange", () => {
+  if (recording && document.visibilityState === "visible") acquireWakeLock();
+});
+
+function stopRecording(){
+  recording = false;
+  clearInterval(timerInt);
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  if (recognition) { const r = recognition; recognition = null; try { r.stop(); } catch (_) {} }
+  if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  $("btnRec").textContent = "🎙 Record";
+  $("btnRec").classList.remove("recording");
+  $("liveBar").hidden = true;
+  $("interim").textContent = "";
+  persist();
+}
+
+function appendTranscript(line){
+  const ta = $("transcript");
+  ta.value = (ta.value.trimEnd() ? ta.value.trimEnd() + "\n" : "") + line;
+  ta.scrollTop = ta.scrollHeight;
+  current.transcript = ta.value;
+  persistSoon();
+}
+
+/* ============================== text analysis ============================== */
+
+const STOPWORDS = new Set(("a an the and or but if then else when while at by for with about against into through during " +
+  "before after above below of to from up down in out on off over under again further once here there why how all any " +
+  "both each few more most other some such no nor not only own same so than too very s t can cannot will would could " +
+  "should just don now is are was were be been being have has had having do does did doing i you he she it we they them " +
+  "him her his its our their this that these those as what which who whom me my your yours um uh okay ok yeah like " +
+  "gonna really actually basically right know think going get got lot kind sort thing things").split(/\s+/));
+
+function cleanText(text){
+  return text.replace(/\[\d+:\d+\]/g, " ");           // strip timestamps
+}
+function splitSentences(text){
+  return cleanText(text)
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map(s => s.trim())
+    .filter(s => s.split(/\s+/).filter(Boolean).length >= 4);
+}
+function words(s){
+  return s.toLowerCase().match(/[\p{L}\p{N}']+/gu) || [];
+}
+function frequencies(sents){
+  const freq = new Map();
+  for (const s of sents)
+    for (const w of words(s))
+      if (!STOPWORDS.has(w) && w.length > 2)
+        freq.set(w, (freq.get(w) || 0) + 1);
+  return freq;
+}
+function scoreSentence(s, freq){
+  const ws = words(s);
+  let score = 0;
+  for (const w of ws) score += freq.get(w) || 0;
+  return score / Math.sqrt(ws.length || 1);
+}
+
+function summarize(text){
+  const sents = splitSentences(text);
+  if (!sents.length) return [];
+  const freq = frequencies(sents);
+  const k = Math.min(7, Math.max(3, Math.ceil(sents.length * 0.2)));
+  return sents
+    .map((s, i) => ({ s, i, score: scoreSentence(s, freq) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, k)
+    .sort((a, b) => a.i - b.i)
+    .map(x => x.s);
+}
+
+const ACTION_RE = new RegExp(
+  "\\b(need(s)? to|have to|has to|must|i'?ll|we'?ll|will (send|do|make|get|set|call|email|review|update|fix|share|check|book|schedule|prepare|finish|write)|" +
+  "let'?s|to-?do|follow(ing)? up|action item|remember to|don'?t forget|make sure|" +
+  "schedule|set up|deadline|due (on|by|date)|" +
+  "by (monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|tonight|noon|next week|end of (the )?(day|week|month)))\\b", "i");
+
+function extractActions(text){
+  const seen = new Set();
+  const out = [];
+  for (const s of splitSentences(text)) {
+    const len = words(s).length;
+    if (len < 4 || len > 40) continue;
+    if (!ACTION_RE.test(s)) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+    if (out.length >= 15) break;
+  }
+  return out;
+}
+
+function makeFlashcards(text){
+  const sents = splitSentences(text);
+  if (!sents.length) return [];
+  const freq = frequencies(sents);
+  const ranked = sents
+    .map((s, i) => ({ s, i, score: scoreSentence(s, freq) }))
+    .sort((a, b) => b.score - a.score);
+  const cards = [];
+  const usedAnswers = new Set();
+  for (const { s } of ranked) {
+    if (cards.length >= 10) break;
+    // pick the most informative word in the sentence as the blank
+    let best = null, bestScore = -1;
+    for (const w of words(s)) {
+      if (STOPWORDS.has(w) || w.length < 4) continue;
+      const sc = (freq.get(w) || 0) * w.length;
+      if (sc > bestScore && !usedAnswers.has(w)) { bestScore = sc; best = w; }
+    }
+    if (!best) continue;
+    usedAnswers.add(best);
+    const front = s.replace(new RegExp("\\b" + best.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i"), "_____");
+    if (front === s) continue;
+    cards.push({ front, back: best });
+  }
+  return cards;
+}
+
+/* ============================== rendering: summary/actions/cards ============================== */
+
+function renderSummary(){
+  const ul = $("summaryList");
+  ul.innerHTML = "";
+  (current.summary || []).forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = s;
+    ul.append(li);
+  });
+  $("summaryEmpty").hidden = (current.summary || []).length > 0;
+}
+
+function renderActions(){
+  const ul = $("actionList");
+  ul.innerHTML = "";
+  (current.actions || []).forEach((a, idx) => {
+    const li = document.createElement("li");
+    if (a.done) li.className = "done";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = a.done;
+    cb.onchange = () => { a.done = cb.checked; renderActions(); persist(); };
+    const span = document.createElement("span");
+    span.className = "atext"; span.textContent = a.text;
+    const x = document.createElement("button");
+    x.className = "ax"; x.textContent = "✕"; x.title = "Remove";
+    x.onclick = () => { current.actions.splice(idx, 1); renderActions(); persist(); };
+    li.append(cb, span, x);
+    ul.append(li);
+  });
+  $("actionsEmpty").hidden = (current.actions || []).length > 0;
+}
+
+let cardIdx = 0, cardFlipped = false;
+function renderCards(){
+  const cards = current.cards || [];
+  const has = cards.length > 0;
+  $("cardsEmpty").hidden = has;
+  $("card").hidden = !has;
+  $("cardNav").hidden = !has;
+  if (!has) return;
+  if (cardIdx >= cards.length) cardIdx = 0;
+  const c = cards[cardIdx];
+  const card = $("card");
+  card.classList.toggle("back", cardFlipped);
+  card.innerHTML = "";
+  const side = document.createElement("div");
+  side.className = "side";
+  side.textContent = cardFlipped ? "Answer — click to flip back" : "Question — click to reveal";
+  const body = document.createElement("div");
+  if (cardFlipped) { body.className = "answer"; body.textContent = c.back; }
+  else body.textContent = c.front;
+  card.append(side, body);
+  $("cardCount").textContent = (cardIdx + 1) + " / " + cards.length;
+}
+
+/* ============================== export ============================== */
+
+function download(name, blob){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function safeName(s){ return (s || "note").replace(/[\\/:*?"<>|]+/g, "-").slice(0, 60); }
+
+function exportMarkdown(){
+  if (!current) return;
+  let md = "# " + noteLabel(current) + "\n\n";
+  md += "*" + new Date(current.createdAt).toLocaleString() + " — made with Owl Notes*\n\n";
+  if ((current.summary || []).length) {
+    md += "## Summary\n\n" + current.summary.map(s => "- " + s).join("\n") + "\n\n";
+  }
+  if ((current.actions || []).length) {
+    md += "## Action items\n\n" + current.actions.map(a => "- [" + (a.done ? "x" : " ") + "] " + a.text).join("\n") + "\n\n";
+  }
+  if (current.transcript.trim()) {
+    md += "## Transcript\n\n" + current.transcript + "\n";
+  }
+  download(safeName(noteLabel(current)) + ".md", new Blob([md], { type: "text/markdown" }));
+}
+
+/* ============================== wire up ============================== */
+
+$("btnNew").onclick = createNote;
+$("btnStart").onclick = createNote;
+$("btnBack").onclick = () => {
+  if (recording) stopRecording();
+  $("app").classList.remove("note-open");
+  renderList();
+};
+$("btnDelete").onclick = deleteCurrent;
+$("btnExport").onclick = exportMarkdown;
+$("btnAudio").onclick = () => {
+  if (current && current.audio) download(safeName(noteLabel(current)) + ".webm", current.audio);
+};
+$("btnRec").onclick = () => { recording ? stopRecording() : startRecording(); };
+$("search").oninput = renderList;
+
+$("title").oninput = () => { if (current) { current.title = $("title").value; persistSoon(); } };
+$("transcript").oninput = () => { if (current) { current.transcript = $("transcript").value; persistSoon(); } };
+$("lang").onchange = () => {
+  if (current) { current.lang = $("lang").value; persistSoon(); }
+  if (recording && recognition) { recognition.lang = $("lang").value; } // applies on next restart
+};
+
+$("btnSummarize").onclick = () => {
+  if (!current) return;
+  current.summary = summarize(current.transcript);
+  if (!current.summary.length) showNotice("Nothing to summarize yet — record or type a few sentences first.");
+  renderSummary(); persist();
+};
+$("btnExtract").onclick = () => {
+  if (!current) return;
+  const found = extractActions(current.transcript);
+  const existing = new Set((current.actions || []).map(a => a.text.toLowerCase()));
+  for (const t of found) if (!existing.has(t.toLowerCase())) current.actions.push({ text: t, done: false });
+  if (!found.length) showNotice("No obvious action items found — you can add one manually.");
+  renderActions(); persist();
+};
+$("btnAddAction").onclick = () => {
+  const t = prompt("Action item:");
+  if (t && t.trim()) { current.actions.push({ text: t.trim(), done: false }); renderActions(); persist(); }
+};
+$("btnCards").onclick = () => {
+  if (!current) return;
+  current.cards = makeFlashcards(current.transcript);
+  cardIdx = 0; cardFlipped = false;
+  if (!current.cards.length) showNotice("Not enough text for flashcards yet — record or type a few sentences first.");
+  renderCards(); persist();
+};
+$("card").onclick = () => { cardFlipped = !cardFlipped; renderCards(); };
+$("cardPrev").onclick = () => { cardIdx = (cardIdx - 1 + current.cards.length) % current.cards.length; cardFlipped = false; renderCards(); };
+$("cardNext").onclick = () => { cardIdx = (cardIdx + 1) % current.cards.length; cardFlipped = false; renderCards(); };
+
+window.addEventListener("beforeunload", () => { if (recording) stopRecording(); });
+
+/* ============================== boot ============================== */
+
+(async function init(){
+  // PWA bits only make sense when served over HTTPS (e.g. installed on a phone)
+  if (location.protocol === "https:") {
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = "manifest.webmanifest";
+    document.head.append(link);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  try {
+    db = await openDB();
+    notes = await dbAll();
+  } catch (err) {
+    console.error(err);
+    alert("Could not open local storage (" + err + "). Notes will not be saved.");
+    notes = [];
+  }
+  renderList();
+})();
+</script>
+</body>
+</html>
