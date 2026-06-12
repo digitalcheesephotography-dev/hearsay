@@ -1,6 +1,10 @@
 // HearSay service worker — caches the app shell so it opens offline.
-const CACHE = "hearsay-v1";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "hearsay-v2";
+const FILES = [
+  "./", "./index.html", "./manifest.webmanifest", "./icon.svg",
+  "./icon-192.png", "./icon-512.png", "./icon-maskable-192.png", "./icon-maskable-512.png",
+  "./favicon-32.png", "./apple-touch-icon.png"
+];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
