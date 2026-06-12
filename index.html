@@ -407,6 +407,7 @@ $("tab-cards").hidden = true;
 /* ============================== recording ============================== */
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const IS_ANDROID = /Android/i.test(navigator.userAgent);
 let recording = false;
 let recognition = null;
 let mediaRecorder = null;
@@ -432,21 +433,30 @@ async function startRecording(){
   chunks = [];
   recStartedAt = Date.now();
 
-  // 1) audio capture (independent from transcription — works even if SR doesn't)
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(mediaStream);
-    mediaRecorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-    mediaRecorder.onstop = () => {
-      current.audio = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
-      current.audioUpdatedAt = Date.now();
-      renderAudio();
-      persist();
-    };
-    mediaRecorder.start(1000);
-  } catch (err) {
+  // 1) audio capture — skipped on Android when live transcription is available,
+  // because Android gives the microphone to only one listener at a time
+  if (IS_ANDROID && SR) {
     mediaRecorder = null;
-    showNotice("Microphone not available (" + err.name + "). You can still type notes by hand.");
+    if (!localStorage.getItem("hearsay-phonemode")) {
+      localStorage.setItem("hearsay-phonemode", "1");
+      showNotice("📱 Phone mode: live transcription is on. Audio files aren't saved while transcribing (phones allow only one mic listener) — transcripts still sync.");
+    }
+  } else {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(mediaStream);
+      mediaRecorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        current.audio = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+        current.audioUpdatedAt = Date.now();
+        renderAudio();
+        persist();
+      };
+      mediaRecorder.start(1000);
+    } catch (err) {
+      mediaRecorder = null;
+      showNotice("Microphone not available (" + err.name + "). You can still type notes by hand.");
+    }
   }
 
   // 2) live transcription
@@ -466,9 +476,14 @@ async function startRecording(){
     };
     recognition.onerror = e => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        showNotice("Speech recognition was blocked (" + e.error + "). Audio is still being recorded if your mic works.");
+        showNotice("⚠ The microphone is blocked for HearSay. Long-press the app icon → App info → Permissions → Microphone → Allow.");
         recognition = null;
+      } else if (e.error === "network") {
+        showNotice("⚠ Live transcription needs an internet connection right now.");
+      } else if (e.error === "audio-capture") {
+        showNotice("⚠ Couldn't reach the microphone for transcription. Close other apps that may be using the mic and try again.");
       }
+      // "no-speech" and "aborted" are routine pauses — the auto-restart handles them
     };
     recognition.onend = () => {
       // Chrome/Edge stop after pauses — restart while we're still recording
