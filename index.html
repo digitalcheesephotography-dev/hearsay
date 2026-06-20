@@ -191,7 +191,7 @@
       <p>Your standalone note taker. Record a meeting or lecture, watch the live transcript appear,
          then generate a <b>summary</b>, <b>action items</b>, and <b>flashcards</b> — all without
          an account, a subscription, or sending your notes anywhere.</p>
-      <button class="start" id="btnStart">＋ Create your first note</button>
+      <button class="start" id="btnStart">＋ Create a note</button>
       <p style="font-size:13px">Tip: live transcription works best in Microsoft Edge or Google Chrome.</p>
     </div>
 
@@ -345,7 +345,7 @@ function renderList(){
   list.innerHTML = "";
   if (!notes.length) {
     const li = document.createElement("li");
-    li.innerHTML = '<div class="nt">👂 No notes yet</div><div class="nm">Tap here to create your first note</div>';
+    li.innerHTML = '<div class="nt">👂 No notes yet</div><div class="nm">Tap here to create a note</div>';
     li.onclick = createNote;
     list.append(li);
     return;
@@ -405,10 +405,18 @@ async function deleteCurrent(){
   notes = notes.filter(n => n.id !== current.id);
   noteDeleted(current); // tombstone so the delete syncs to other devices
   current = null;
-  $("app").classList.remove("note-open");
-  $("editor").hidden = true;
-  $("empty").hidden = false;
-  renderList();
+  // On a wide screen, fall back to the next most recent note rather than the
+  // welcome screen. On a phone, return to the note list.
+  const onPhone = window.matchMedia("(max-width:600px)").matches;
+  const next = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  if (next && !onPhone) {
+    openNote(next.id);
+  } else {
+    $("app").classList.remove("note-open");
+    $("editor").hidden = true;
+    $("empty").hidden = false;
+    renderList();
+  }
 }
 
 /* ============================== tabs ============================== */
@@ -1184,6 +1192,13 @@ window.addEventListener("beforeunload", () => { if (recording) stopRecording(); 
   }
   renderList();
   updateSyncUi();
+  // On a wide screen, jump straight into the most recent note instead of the
+  // welcome screen. On a phone we leave the note list showing (master-detail).
+  const onPhone = window.matchMedia("(max-width:600px)").matches;
+  if (notes.length && !onPhone) {
+    const recent = notes.slice().sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    openNote(recent.id);
+  }
   if (canSync()) syncNow();
 })();
 </script>
