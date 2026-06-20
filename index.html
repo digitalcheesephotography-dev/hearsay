@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#10131c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HearSay">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>HearSay — Standalone Note Taker</title>
@@ -1150,13 +1154,10 @@ window.addEventListener("beforeunload", () => { if (recording) stopRecording(); 
 /* ============================== boot ============================== */
 
 (async function init(){
-  // PWA bits only make sense when served over HTTPS (e.g. installed on a phone)
-  if (location.protocol === "https:") {
-    const link = document.createElement("link");
-    link.rel = "manifest";
-    link.href = "manifest.webmanifest";
-    document.head.append(link);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Manifest is declared statically in <head> for reliable installability.
+  // The service worker only works over HTTPS, so register it there.
+  if (location.protocol === "https:" && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
   }
   try {
     db = await openDB();
