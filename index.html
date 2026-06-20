@@ -15,7 +15,7 @@
   :root{
     --bg:#08080d; --panel:#101019; --panel2:#1a1a29; --panel3:#222236;
     --line:#34344d; --text:#f5f6fc; --dim:#b2b7d0;
-    --accent:#c084fc; --accent2:#34d8f0;
+    --accent:#c084fc; --accent2:#34d8f0; --accent3:#d946ef;
     --grad:linear-gradient(135deg,#8b5cf6 0%,#d946ef 55%,#f472b6 100%);
     --glow:0 6px 22px -6px rgba(168,85,247,.55);
     --danger:#ff5d73; --ok:#34d399; --radius:12px;
@@ -100,7 +100,7 @@
   .tabs{display:flex; gap:6px; padding:14px 18px 0; border-bottom:1px solid var(--line);}
   .tabs button{background:transparent; color:var(--dim); padding:9px 15px; font-size:14px; font-weight:600; border-radius:10px 10px 0 0; border-bottom:2px solid transparent; margin-bottom:-1px;}
   .tabs button:hover{color:var(--text); background:rgba(255,255,255,.04);}
-  .tabs button.active{color:#fff; border-bottom:2px solid #d946ef; background:rgba(217,70,239,.12);}
+  .tabs button.active{color:#fff; border-bottom:2px solid var(--accent3); background:rgba(217,70,239,.12);}
 
   .pane{flex:1; min-height:0; display:flex; flex-direction:column; padding:12px 18px 18px;}
   #transcript{flex:1; resize:none; padding:14px; line-height:1.7; font-size:15px;}
@@ -132,12 +132,64 @@
   }
   #card:hover{border-color:#4a4a68;}
   #card .side{font-size:11px; letter-spacing:2.5px; color:var(--accent); font-weight:700; text-transform:uppercase;}
-  #card.back{border-color:#d946ef; box-shadow:var(--glow);}
+  #card.back{border-color:var(--accent3); box-shadow:var(--glow);}
   #card.back .answer{font-weight:800; font-size:24px; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;}
   .cardnav{display:flex; gap:10px; align-items:center;}
   .cardnav button{background:var(--panel2); border:1px solid var(--line); color:var(--text); padding:8px 16px;}
   #cardCount{color:var(--dim); min-width:60px; text-align:center;}
   .placeholder{color:var(--dim); text-align:center; margin-top:30px;}
+
+  /* dropdown menus (new-note templates, share) */
+  .menuwrap{position:relative; display:inline-flex;}
+  .menu{position:absolute; z-index:40; top:calc(100% + 6px); background:var(--panel3); border:1px solid var(--line); border-radius:12px; padding:6px; min-width:190px; box-shadow:0 18px 44px -14px rgba(0,0,0,.75); display:flex; flex-direction:column; gap:2px;}
+  .menu.right{right:0;}
+  .menu button{background:transparent; color:var(--text); text-align:left; padding:10px 11px; border-radius:8px; font-size:14px; font-weight:500;}
+  .menu button:hover{background:rgba(255,255,255,.07);}
+
+  /* topbar pin / color / mark */
+  #btnPin.on{color:var(--accent2); border-color:var(--accent2); box-shadow:0 0 0 3px rgba(52,216,240,.12);}
+  #btnColor .dot{display:inline-block; width:14px; height:14px; border-radius:50%; border:1.5px solid var(--line); vertical-align:middle;}
+  #btnMark{background:linear-gradient(135deg,#f59e0b,#f472b6); color:#231400; font-weight:700; padding:10px 14px;}
+  #btnMark:hover{filter:brightness(1.08);}
+
+  /* note-list color dot + pin */
+  #noteList .row{display:flex; align-items:center; gap:7px;}
+  #noteList .cdot{flex:0 0 auto; width:9px; height:9px; border-radius:50%;}
+  #noteList .pin{font-size:11px; opacity:.9;}
+
+  /* transcript: edit vs tap-to-play view */
+  .tpane-tools{display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap;}
+  .toggle{background:var(--panel3); border:1px solid var(--line); color:var(--text); padding:8px 13px; font-weight:600; font-size:13px; border-radius:9px;}
+  .toggle:hover{border-color:var(--accent2);}
+  #playView{flex:1; overflow-y:auto; padding:2px;}
+  .tline{display:flex; gap:10px; padding:7px 10px; border-radius:9px; align-items:baseline; line-height:1.65;}
+  .tline.seek{cursor:pointer;}
+  .tline.seek:hover{background:rgba(255,255,255,.05);}
+  .tline .ts{flex:0 0 auto; font-variant-numeric:tabular-nums; font-size:12px; font-weight:700; color:var(--accent2); background:rgba(52,216,240,.13); padding:1px 7px; border-radius:6px;}
+  .tline.playing{background:rgba(217,70,239,.16); box-shadow:inset 3px 0 0 var(--accent3);}
+  .tline.mark{background:rgba(245,158,11,.13);}
+  .tline.mark .tx{font-weight:700;}
+
+  /* theme swatches + week stat */
+  .swatches{display:flex; gap:9px; align-items:center; margin-top:2px;}
+  .swatch{width:20px; height:20px; border-radius:50%; cursor:pointer; border:2px solid transparent; padding:0;}
+  .swatch.sel{border-color:#fff;}
+  #statLine{font-size:12px; color:var(--dim);}
+
+  /* print / save-as-PDF */
+  #printArea{display:none;}
+  @media print{
+    body{overflow:visible;}
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block; position:absolute; left:0; top:0; width:100%; color:#000; background:#fff; padding:26px; font:13px/1.6 Georgia, "Times New Roman", serif;}
+    #printArea h1{font-size:23px; margin-bottom:4px;}
+    #printArea h2{font-size:15px; margin:18px 0 6px; border-bottom:1px solid #ccc; padding-bottom:3px;}
+    #printArea .meta{color:#555; font-size:12px; margin-bottom:6px;}
+    #printArea ul{margin:0 0 0 18px;}
+    #printArea li{margin:3px 0;}
+    #printArea pre{white-space:pre-wrap; font:inherit; margin:0;}
+  }
 
   #btnBack{display:none;}
 
@@ -171,7 +223,16 @@
   <aside id="sidebar">
     <header class="side-head">
       <div class="logo"><span class="owl">👂</span>HearSay</div>
-      <button id="btnNew" title="New note">+</button>
+      <span class="menuwrap">
+        <button id="btnNew" title="New note">+</button>
+        <div id="newMenu" class="menu right" hidden>
+          <button data-tpl="blank">📝 Blank note</button>
+          <button data-tpl="meeting">👥 Meeting</button>
+          <button data-tpl="lecture">🎓 Lecture</button>
+          <button data-tpl="sermon">🙏 Sermon</button>
+          <button data-tpl="job">🪜 Job site</button>
+        </div>
+      </span>
     </header>
     <input id="search" type="search" placeholder="Search notes…">
     <ul id="noteList"></ul>
@@ -180,6 +241,8 @@
       <div id="syncStatus"></div>
       <div id="privacyLine">🔒 Everything stays on this device</div>
       <div id="syncDisconnect" hidden>Disconnect Google Drive</div>
+      <div id="statLine"></div>
+      <div class="swatches" id="themeSwatches" title="Theme color"></div>
     </footer>
   </aside>
 
@@ -214,9 +277,19 @@
           <option value="ar-SA">العربية</option>
         </select>
         <button id="btnRec">🎙 Record</button>
+        <button id="btnMark" title="Mark this moment" hidden>⭐ Mark</button>
         <span id="timer"></span>
-        <button id="btnExport" class="iconbtn" title="Download note as Markdown">⬇ Export</button>
-        <button id="btnAudio" class="iconbtn" title="Download recording" hidden>🔊 Audio</button>
+        <button id="btnPin" class="iconbtn" title="Pin to top">📌</button>
+        <button id="btnColor" class="iconbtn" title="Color label"><span class="dot"></span></button>
+        <span class="menuwrap">
+          <button id="btnShare" class="iconbtn" title="Share / export">⬇ Share</button>
+          <div id="shareMenu" class="menu right" hidden>
+            <button data-act="md">📄 Save as Markdown</button>
+            <button data-act="pdf">🖨 Save as PDF</button>
+            <button data-act="copy">📋 Copy text</button>
+            <button data-act="audio" id="shareAudio" hidden>🔊 Download recording</button>
+          </div>
+        </span>
         <button id="btnDelete" class="iconbtn" title="Delete note">🗑</button>
       </div>
 
@@ -232,7 +305,12 @@
       </nav>
 
       <section class="pane" id="tab-transcript">
+        <div class="tpane-tools">
+          <button id="btnViewToggle" class="toggle" hidden>▶ Play view</button>
+          <span class="hint" id="playHint" hidden>Tap any line to jump the recording to that moment.</span>
+        </div>
         <textarea id="transcript" placeholder="Press 🎙 Record to start live transcription, or just type your notes here…" spellcheck="false"></textarea>
+        <div id="playView" hidden></div>
       </section>
 
       <section class="pane" id="tab-summary" hidden>
@@ -310,9 +388,22 @@ function newNote(){
     actions: [],   // {text, done}
     cards: [],     // {front, back}
     audio: null,   // Blob
+    pinned: false,
+    color: null,
+    recordedSecs: 0,
     lang: $("lang").value || "en-US"
   };
 }
+
+// starter scaffolds for the New-note template menu
+const TEMPLATES = {
+  blank:   { title: "", body: "" },
+  meeting: { title: "Meeting", body: "Attendees:\nAgenda:\n\n— Notes —\n" },
+  lecture: { title: "Lecture", body: "Topic:\nKey points:\n\n— Notes —\n" },
+  sermon:  { title: "Sermon", body: "Scripture:\nTheme:\n\n— Notes —\n" },
+  job:     { title: "Job site", body: "Customer:\nAddress:\nScope of work:\nColors / materials:\nNotes:\n" }
+};
+function todayLabel(){ return new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 
 function persist(){
   if (!current) return;
@@ -352,13 +443,17 @@ function renderList(){
   }
   notes
     .filter(n => !q || (n.title + " " + n.transcript).toLowerCase().includes(q))
-    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt)
     .forEach(n => {
       const li = document.createElement("li");
       if (current && n.id === current.id) li.className = "active";
+      const row = document.createElement("div"); row.className = "row";
+      if (n.color) { const d = document.createElement("span"); d.className = "cdot"; d.style.background = n.color; row.append(d); }
       const t = document.createElement("div"); t.className = "nt"; t.textContent = (n.audio ? "🎙 " : "") + noteLabel(n);
+      row.append(t);
+      if (n.pinned) { const p = document.createElement("span"); p.className = "pin"; p.textContent = "📌"; row.append(p); }
       const m = document.createElement("div"); m.className = "nm"; m.textContent = fmtDate(n.updatedAt) + " · " + firstWords(n.transcript, 6);
-      li.append(t, m);
+      li.append(row, m);
       li.onclick = () => openNote(n.id);
       list.append(li);
     });
@@ -376,25 +471,84 @@ function openNote(id){
   $("title").value = current.title;
   $("transcript").value = current.transcript;
   $("lang").value = current.lang || "en-US";
-  renderSummary(); renderActions(); renderCards(); renderAudio(); renderList();
+  $("btnPin").classList.toggle("on", !!current.pinned);
+  $("btnColor").querySelector(".dot").style.background = current.color || "transparent";
+  renderSummary(); renderActions(); renderCards(); renderAudio();
+  showPlay = hasAudio();           // default to tap-to-play view when a recording exists
+  renderTranscriptArea();
+  renderList();
   maybeFetchAudio(current); // pull this note's recording from Drive if we don't have it locally
 }
+
+function hasAudio(){ return current && current.audio instanceof Blob && current.audio.size > 0; }
 
 function renderAudio(){
   const p = $("player");
   if (p.src) { URL.revokeObjectURL(p.src); p.removeAttribute("src"); }
   const has = current && current.audio instanceof Blob && current.audio.size > 0;
   p.hidden = !has;
-  $("btnAudio").hidden = !has;
+  $("shareAudio").hidden = !has;
   if (has) p.src = URL.createObjectURL(current.audio);
 }
 
-async function createNote(){
+/* ---------- transcript: edit textarea vs tap-to-play view ---------- */
+let showPlay = false;
+let playLines = [];
+
+function renderTranscriptArea(){
+  const audio = hasAudio();
+  $("btnViewToggle").hidden = !audio;
+  $("playHint").hidden = !(audio && showPlay);
+  const playing = audio && showPlay;
+  $("transcript").hidden = playing;
+  $("playView").hidden = !playing;
+  $("btnViewToggle").textContent = playing ? "✏️ Edit" : "▶ Play view";
+  if (playing) renderPlayView();
+}
+
+function renderPlayView(){
+  const box = $("playView");
+  box.innerHTML = "";
+  playLines = [];
+  (current.transcript || "").split("\n").forEach(line => {
+    if (!line.trim()) return;
+    const m = line.match(/\[(\d+):(\d{1,2})\]/);
+    const secs = m ? (+m[1] * 60 + +m[2]) : null;
+    const isMark = /^\s*⭐/.test(line);
+    const div = document.createElement("div");
+    div.className = "tline" + (secs != null ? " seek" : "") + (isMark ? " mark" : "");
+    if (m) {
+      const ts = document.createElement("span");
+      ts.className = "ts";
+      ts.textContent = m[1] + ":" + m[2].padStart(2, "0");
+      div.append(ts);
+    }
+    const tx = document.createElement("span");
+    tx.className = "tx";
+    tx.textContent = line.replace(/\[(\d+):(\d{1,2})\]/, "").replace(/^\s*⭐\s*/, "⭐ ").trim();
+    div.append(tx);
+    if (secs != null) { div.onclick = () => seekTo(secs); playLines.push({ el: div, secs }); }
+    box.append(div);
+  });
+}
+
+function seekTo(secs){
+  const p = $("player");
+  if (!p.src) return;
+  try { p.currentTime = secs; p.play().catch(() => {}); } catch (_) {}
+}
+
+async function createNote(tpl){
   const n = newNote();
+  const t = TEMPLATES[tpl];
+  if (t && tpl !== "blank") {
+    n.title = t.title + " — " + todayLabel();
+    n.transcript = t.body;
+  }
   notes.push(n);
   await dbPut(n);
   openNote(n.id);
-  $("title").focus();
+  if (!n.transcript) $("title").focus();
 }
 
 async function deleteCurrent(){
@@ -477,6 +631,8 @@ async function startRecording(){
         current.audio = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
         current.audioUpdatedAt = Date.now();
         renderAudio();
+        showPlay = true;          // reveal the tap-to-play transcript now that audio exists
+        renderTranscriptArea();
         persist();
       };
       mediaRecorder.start(1000);
@@ -527,6 +683,9 @@ async function startRecording(){
   recording = true;
   $("btnRec").textContent = "■ Stop";
   $("btnRec").classList.add("recording");
+  $("btnMark").hidden = false;
+  showPlay = false;           // show the live textarea while recording
+  renderTranscriptArea();
   $("liveBar").hidden = !SR;
   $("timer").textContent = "0:00";
   timerInt = setInterval(() => { $("timer").textContent = elapsedStamp().slice(1, -1); }, 1000);
@@ -541,6 +700,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function stopRecording(){
+  const wasRec = recording;
   recording = false;
   clearInterval(timerInt);
   if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
@@ -549,8 +709,13 @@ function stopRecording(){
   if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
   $("btnRec").textContent = "🎙 Record";
   $("btnRec").classList.remove("recording");
+  $("btnMark").hidden = true;
   $("liveBar").hidden = true;
   $("interim").textContent = "";
+  if (wasRec) {
+    const secs = Math.round((Date.now() - recStartedAt) / 1000);
+    if (secs > 0 && current) { current.recordedSecs = (current.recordedSecs || 0) + secs; logRecording(secs); }
+  }
   persist();
 }
 
@@ -840,6 +1005,86 @@ function exportMarkdown(){
   download(safeName(noteLabel(current)) + ".md", new Blob([md], { type: "text/markdown" }));
 }
 
+function esc(s){ return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function printNote(){
+  if (!current) return;
+  let html = "<h1>" + esc(noteLabel(current)) + "</h1>";
+  html += '<div class="meta">' + esc(new Date(current.createdAt).toLocaleString()) + " — made with HearSay</div>";
+  if ((current.summary || []).length)
+    html += "<h2>Summary</h2><ul>" + current.summary.map(s => "<li>" + esc(s) + "</li>").join("") + "</ul>";
+  if ((current.actions || []).length)
+    html += "<h2>Action items</h2><ul>" + current.actions.map(a => "<li>" + (a.done ? "☑ " : "☐ ") + esc(a.text) + "</li>").join("") + "</ul>";
+  if (current.transcript.trim())
+    html += "<h2>Transcript</h2><pre>" + esc(current.transcript) + "</pre>";
+  $("printArea").innerHTML = html;
+  window.print();
+}
+
+function copyText(){
+  if (!current) return;
+  let t = noteLabel(current) + "\n\n";
+  if ((current.summary || []).length) t += "SUMMARY\n" + current.summary.map(s => "• " + s).join("\n") + "\n\n";
+  if ((current.actions || []).length) t += "ACTION ITEMS\n" + current.actions.map(a => (a.done ? "[x] " : "[ ] ") + a.text).join("\n") + "\n\n";
+  if (current.transcript.trim()) t += current.transcript;
+  navigator.clipboard.writeText(t).then(
+    () => showNotice("Copied to clipboard ✓"),
+    () => showNotice("Couldn't copy — your browser blocked clipboard access.")
+  );
+}
+
+/* ---------- recording stats: minutes this week ---------- */
+function logRecording(secs){
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem("hearsay-reclog") || "[]"); } catch (_) {}
+  log.push({ t: Date.now(), s: secs });
+  const cutoff = Date.now() - 30 * 864e5;
+  log = log.filter(e => e.t > cutoff);
+  localStorage.setItem("hearsay-reclog", JSON.stringify(log));
+  renderStats();
+}
+function renderStats(){
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem("hearsay-reclog") || "[]"); } catch (_) {}
+  const weekAgo = Date.now() - 7 * 864e5;
+  const secs = log.filter(e => e.t > weekAgo).reduce((a, e) => a + e.s, 0);
+  const mins = Math.round(secs / 60);
+  $("statLine").textContent = mins > 0 ? "⏱ " + mins + " min recorded this week" : "";
+}
+
+/* ---------- theme / accent color ---------- */
+const THEMES = {
+  violet: { grad: "linear-gradient(135deg,#8b5cf6 0%,#d946ef 55%,#f472b6 100%)", accent: "#c084fc", accent3: "#d946ef", glow: "0 6px 22px -6px rgba(168,85,247,.55)", swatch: "#d946ef" },
+  ocean:  { grad: "linear-gradient(135deg,#3b82f6 0%,#06b6d4 55%,#22d3ee 100%)", accent: "#38bdf8", accent3: "#22d3ee", glow: "0 6px 22px -6px rgba(34,211,238,.5)",  swatch: "#22d3ee" },
+  emerald:{ grad: "linear-gradient(135deg,#10b981 0%,#34d399 55%,#fcd34d 100%)", accent: "#34d399", accent3: "#fcd34d", glow: "0 6px 22px -6px rgba(52,211,153,.5)",  swatch: "#10b981" },
+  sunset: { grad: "linear-gradient(135deg,#f97316 0%,#ef4444 55%,#ec4899 100%)", accent: "#fb923c", accent3: "#ef4444", glow: "0 6px 22px -6px rgba(239,68,68,.5)",   swatch: "#f97316" },
+  silver: { grad: "linear-gradient(135deg,#64748b 0%,#94a3b8 55%,#cbd5e1 100%)", accent: "#cbd5e1", accent3: "#94a3b8", glow: "0 6px 22px -6px rgba(148,163,184,.45)", swatch: "#94a3b8" }
+};
+function applyTheme(key){
+  const th = THEMES[key] || THEMES.violet;
+  const r = document.documentElement.style;
+  r.setProperty("--grad", th.grad);
+  r.setProperty("--accent", th.accent);
+  r.setProperty("--accent3", th.accent3);
+  r.setProperty("--glow", th.glow);
+  localStorage.setItem("hearsay-theme", key in THEMES ? key : "violet");
+  document.querySelectorAll("#themeSwatches .swatch").forEach(s => s.classList.toggle("sel", s.dataset.theme === key));
+}
+function renderSwatches(){
+  const box = $("themeSwatches");
+  box.innerHTML = "";
+  const cur = localStorage.getItem("hearsay-theme") || "violet";
+  Object.keys(THEMES).forEach(key => {
+    const b = document.createElement("button");
+    b.className = "swatch" + (key === cur ? " sel" : "");
+    b.dataset.theme = key;
+    b.style.background = THEMES[key].swatch;
+    b.title = key;
+    b.onclick = () => applyTheme(key);
+    box.append(b);
+  });
+}
+
 /* ============================== Google Drive sync ============================== */
 
 const GOOGLE_CLIENT_ID = "139838823596-c1i12j4ltiask4pbg55s4k8jjspt4pd9.apps.googleusercontent.com";
@@ -1121,18 +1366,54 @@ window.addEventListener("online", scheduleSync);
 
 /* ============================== wire up ============================== */
 
-$("btnNew").onclick = createNote;
-$("btnStart").onclick = createNote;
+const COLORS = [null, "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"];
+function closeMenus(){ document.querySelectorAll(".menu").forEach(m => m.hidden = true); }
+function toggleMenu(id){ const m = $(id); const wasHidden = m.hidden; closeMenus(); m.hidden = !wasHidden; }
+document.addEventListener("click", e => { if (!e.target.closest(".menuwrap")) closeMenus(); });
+
+$("btnNew").onclick = e => { e.stopPropagation(); toggleMenu("newMenu"); };
+$("btnStart").onclick = () => createNote("blank");
+$("newMenu").querySelectorAll("button").forEach(b => b.onclick = () => { closeMenus(); createNote(b.dataset.tpl); });
 $("btnBack").onclick = () => {
   if (recording) stopRecording();
   $("app").classList.remove("note-open");
   renderList();
 };
 $("btnDelete").onclick = deleteCurrent;
-$("btnExport").onclick = exportMarkdown;
-$("btnAudio").onclick = () => {
-  if (current && current.audio) download(safeName(noteLabel(current)) + ".webm", current.audio);
+
+$("btnShare").onclick = e => { e.stopPropagation(); toggleMenu("shareMenu"); };
+$("shareMenu").querySelectorAll("button").forEach(b => b.onclick = () => {
+  closeMenus();
+  const act = b.dataset.act;
+  if (act === "md") exportMarkdown();
+  else if (act === "pdf") printNote();
+  else if (act === "copy") copyText();
+  else if (act === "audio" && current && current.audio) download(safeName(noteLabel(current)) + ".webm", current.audio);
+});
+
+$("btnPin").onclick = () => {
+  if (!current) return;
+  current.pinned = !current.pinned;
+  $("btnPin").classList.toggle("on", current.pinned);
+  persist();
 };
+$("btnColor").onclick = () => {
+  if (!current) return;
+  const i = COLORS.indexOf(current.color || null);
+  current.color = COLORS[(i + 1) % COLORS.length];
+  $("btnColor").querySelector(".dot").style.background = current.color || "transparent";
+  persist();
+};
+$("btnViewToggle").onclick = () => { showPlay = !showPlay; renderTranscriptArea(); };
+$("btnMark").onclick = () => { if (recording) appendTranscript("⭐ " + elapsedStamp() + " Highlight"); };
+$("player").addEventListener("timeupdate", () => {
+  if (!showPlay || !playLines.length) return;
+  const t = $("player").currentTime;
+  let active = null;
+  for (const pl of playLines) { if (pl.secs <= t + 0.3) active = pl.el; else break; }
+  playLines.forEach(pl => pl.el.classList.toggle("playing", pl.el === active));
+});
+
 $("btnRec").onclick = () => { recording ? stopRecording() : startRecording(); };
 $("search").oninput = renderList;
 
@@ -1177,6 +1458,10 @@ window.addEventListener("beforeunload", () => { if (recording) stopRecording(); 
 /* ============================== boot ============================== */
 
 (async function init(){
+  document.body.insertAdjacentHTML("beforeend", '<div id="printArea"></div>');
+  applyTheme(localStorage.getItem("hearsay-theme") || "violet");
+  renderSwatches();
+  renderStats();
   // Manifest is declared statically in <head> for reliable installability.
   // The service worker only works over HTTPS, so register it there.
   if (location.protocol === "https:" && "serviceWorker" in navigator) {
