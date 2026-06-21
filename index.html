@@ -644,18 +644,28 @@ async function startRecording(){
 
   // 2) live transcription
   if (SR) {
+    liveBase = current.transcript;   // build on top of whatever's already in the note
+    curStamp = null; curText = "";
     recognition = new SR();
     recognition.lang = $("lang").value;
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onresult = e => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      // Rebuild the whole finalized text for this burst, then overwrite the
+      // current line with it (never append word-by-word — that caused the
+      // duplicate "staircase" on Android).
+      let finalText = "", interim = "";
+      for (let i = 0; i < e.results.length; i++) {
         const r = e.results[i];
-        if (r.isFinal) appendTranscript(elapsedStamp() + " " + r[0].transcript.trim());
+        if (r.isFinal) finalText += r[0].transcript + " ";
         else interim += r[0].transcript;
       }
-      $("interim").textContent = interim;
+      finalText = finalText.trim();
+      if (finalText) {
+        if (!curStamp) curStamp = elapsedStamp();
+        curText = finalText;
+      }
+      liveRender(interim);
     };
     recognition.onerror = e => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
@@ -669,7 +679,8 @@ async function startRecording(){
       // "no-speech" and "aborted" are routine pauses — the auto-restart handles them
     };
     recognition.onend = () => {
-      // Chrome/Edge stop after pauses — restart while we're still recording
+      liveCommit(); // finalize the line spoken in this burst before the next one
+      // Chrome/Edge/Android stop after pauses — restart while we're still recording
       if (recording && recognition) { try { recognition.start(); } catch (_) {} }
     };
     try { recognition.start(); } catch (_) {}
@@ -712,6 +723,7 @@ function stopRecording(){
   $("btnMark").hidden = true;
   $("liveBar").hidden = true;
   $("interim").textContent = "";
+  liveCommit(); // flush the final spoken line
   if (wasRec) {
     const secs = Math.round((Date.now() - recStartedAt) / 1000);
     if (secs > 0 && current) { current.recordedSecs = (current.recordedSecs || 0) + secs; logRecording(secs); }
@@ -725,6 +737,36 @@ function appendTranscript(line){
   ta.scrollTop = ta.scrollHeight;
   current.transcript = ta.value;
   persistSoon();
+}
+
+/* Live transcript assembly.
+   The speech engine (especially on Android) reports a sentence as it grows —
+   "I", "I went", "I went home". We keep ONE in-progress line per recognition
+   burst and overwrite it as it grows, instead of appending each version (which
+   produced the staircase of repeated words). On each pause the engine restarts;
+   we commit the finished line and begin a fresh one. */
+let liveBase = "";        // transcript text already committed
+let curStamp = null;      // timestamp of the line currently being spoken
+let curText = "";         // latest text of that line
+
+function liveRender(interim){
+  const ta = $("transcript");
+  let body = liveBase;
+  const line = (curStamp ? curStamp + " " + curText : "").trim();
+  if (line) body = body + (body ? "\n" : "") + line;
+  ta.value = body;
+  ta.scrollTop = ta.scrollHeight;
+  current.transcript = ta.value;
+  $("interim").textContent = interim || "";
+  persistSoon();
+}
+
+function liveCommit(){
+  if (curStamp && curText.trim()) {
+    liveBase = liveBase + (liveBase ? "\n" : "") + curStamp + " " + curText.trim();
+  }
+  curStamp = null;
+  curText = "";
 }
 
 /* ============================== text analysis ==============================
@@ -1405,7 +1447,12 @@ $("btnColor").onclick = () => {
   persist();
 };
 $("btnViewToggle").onclick = () => { showPlay = !showPlay; renderTranscriptArea(); };
-$("btnMark").onclick = () => { if (recording) appendTranscript("⭐ " + elapsedStamp() + " Highlight"); };
+$("btnMark").onclick = () => {
+  if (!recording) return;
+  liveCommit();   // close off the current spoken line
+  liveBase = liveBase + (liveBase ? "\n" : "") + "⭐ " + elapsedStamp() + " Highlight";
+  liveRender("");
+};
 $("player").addEventListener("timeupdate", () => {
   if (!showPlay || !playLines.length) return;
   const t = $("player").currentTime;
