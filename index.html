@@ -646,21 +646,20 @@ async function startRecording(){
   if (SR) {
     liveBase = current.transcript;   // build on top of whatever's already in the note
     curStamp = null; curText = "";
+    lastLine = ""; lastStamp = null;
     recognition = new SR();
     recognition.lang = $("lang").value;
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onresult = e => {
-      // Rebuild the whole finalized text for this burst, then overwrite the
-      // current line with it (never append word-by-word — that caused the
-      // duplicate "staircase" on Android).
-      let finalText = "", interim = "";
+      // Merge any overlapping final results into one clean line (handles Android
+      // returning duplicate/growing copies), and overwrite the current line with
+      // it — never append word-by-word.
+      let interim = "";
       for (let i = 0; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) finalText += r[0].transcript + " ";
-        else interim += r[0].transcript;
+        if (!e.results[i].isFinal) interim += e.results[i][0].transcript;
       }
-      finalText = finalText.trim();
+      const finalText = joinFinals(e.results);
       if (finalText) {
         if (!curStamp) curStamp = elapsedStamp();
         curText = finalText;
@@ -748,6 +747,33 @@ function appendTranscript(line){
 let liveBase = "";        // transcript text already committed
 let curStamp = null;      // timestamp of the line currently being spoken
 let curText = "";         // latest text of that line
+let lastLine = "";        // text of the last committed line (for de-duping restarts)
+let lastStamp = null;
+
+// Some Android engines return several overlapping "final" results at once
+// (e.g. "the time has come", "the time has come to see"). Naively concatenating
+// them repeats words. This folds them into one clean string by skipping copies
+// and merging on the largest overlap between the end of what we have and the
+// start of the next piece.
+function joinFinals(results){
+  let out = "";
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (!r.isFinal) continue;
+    const t = r[0].transcript.trim();
+    if (!t) continue;
+    if (!out) { out = t; continue; }
+    if (out.includes(t)) continue;          // already contained
+    if (t.includes(out)) { out = t; continue; } // new piece is a superset
+    let ov = 0;
+    const max = Math.min(out.length, t.length);
+    for (let k = max; k > 0; k--) {
+      if (out.slice(out.length - k).toLowerCase() === t.slice(0, k).toLowerCase()) { ov = k; break; }
+    }
+    out = (out + " " + t.slice(ov)).replace(/\s+/g, " ").trim();
+  }
+  return out;
+}
 
 function liveRender(interim){
   const ta = $("transcript");
@@ -761,12 +787,20 @@ function liveRender(interim){
   persistSoon();
 }
 
+function stripLastLine(s){ const i = s.lastIndexOf("\n"); return i < 0 ? "" : s.slice(0, i); }
+
 function liveCommit(){
-  if (curStamp && curText.trim()) {
-    liveBase = liveBase + (liveBase ? "\n" : "") + curStamp + " " + curText.trim();
+  const t = curText.trim();
+  let stamp = curStamp || elapsedStamp();
+  curStamp = null; curText = "";
+  if (!t) return;
+  if (t === lastLine) return;                 // identical re-recognition after a restart
+  if (lastLine && t.startsWith(lastLine)) {   // same sentence continued — replace the shorter line
+    liveBase = stripLastLine(liveBase);
+    stamp = lastStamp || stamp;
   }
-  curStamp = null;
-  curText = "";
+  liveBase = liveBase + (liveBase ? "\n" : "") + stamp + " " + t;
+  lastLine = t; lastStamp = stamp;
 }
 
 /* ============================== text analysis ==============================
